@@ -1,0 +1,17 @@
+services:
+  mcp-server:
+    build: .
+    container_name: mcp-tools
+    volumes:
+      - ~/.aws:/root/.aws:ro
+      - ~/.config/gh:/root/.config/gh:ro
+      - ${PWD}:/workspace
+    working_dir: /workspace
+    env_file:
+      - .env
+    environment:
+      - AWS_PROFILE=${AWS_PROFILE:-mittentech-production}
+      - GH_TOKEN=${GH_TOKEN}
+    command: tail -f /dev/null
+    stdin_open: true
+    tty: true

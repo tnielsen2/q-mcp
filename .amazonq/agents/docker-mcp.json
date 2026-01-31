@@ -1,0 +1,20 @@
+{
+  "name": "docker-mcp-agent",
+  "description": "MCP agent with Terraform, GitHub CLI, AWS CLI, and filesystem tools running in Docker",
+  "mcpServers": {
+    "docker-tools": {
+      "command": "docker",
+      "args": ["exec", "-i", "mcp-tools", "node", "/mcp/mcp-server.js"]
+    }
+  },
+  "tools": ["@docker-tools"],
+  "allowedTools": [
+    "@docker-tools/fs_read",
+    "@docker-tools/fs_write",
+    "@docker-tools/fs_list",
+    "@docker-tools/shell",
+    "@docker-tools/terraform",
+    "@docker-tools/gh",
+    "@docker-tools/aws"
+  ]
+}
