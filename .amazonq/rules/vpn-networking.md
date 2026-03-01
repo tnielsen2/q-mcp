@@ -235,6 +235,84 @@ Should show pod IP and ports. If empty, service selector is wrong.
 | `VPN_TYPE` | VPN protocol | `"openvpn"` |
 | `SERVER_COUNTRIES` | VPN server location | `"Netherlands"` |
 
+## Verifying VPN Exit IP
+
+Ensure traffic is actually exiting through the VPN and not leaking through local connection.
+
+### Check VPN Status in Gluetun
+```bash
+# Check gluetun logs for VPN connection
+kubectl logs -n heezy deployment/slskd-vpn -c gluetun | grep -i "ip"
+```
+
+### Verify Public IP from Inside Container
+```bash
+# Check public IP from the VPN-protected container
+kubectl exec -n heezy deployment/slskd-vpn -c slskd -- \
+  wget -qO- https://api.ipify.org
+
+# Or using curl
+kubectl exec -n heezy deployment/slskd-vpn -c slskd -- \
+  curl -s https://api.ipify.org
+```
+
+### Compare with Host IP
+```bash
+# Check your actual public IP (from host)
+curl -s https://api.ipify.org
+
+# These IPs should be DIFFERENT
+# VPN container should show VPN provider's IP
+# Host should show your ISP's IP
+```
+
+### Check VPN Connection Details
+```bash
+# View gluetun control server info
+kubectl exec -n heezy deployment/slskd-vpn -c gluetun -- \
+  wget -qO- http://localhost:8000/v1/openvpn/status
+
+# Expected output should show:
+# - "status": "running"
+# - VPN server location
+# - Public IP (should match VPN provider's IP)
+```
+
+### Verify DNS Leak Protection
+```bash
+# Check DNS servers being used
+kubectl exec -n heezy deployment/slskd-vpn -c slskd -- cat /etc/resolv.conf
+
+# Should show VPN provider's DNS or gluetun's DNS, not your local DNS
+```
+
+### Test with IP Geolocation
+```bash
+# Check IP geolocation
+kubectl exec -n heezy deployment/slskd-vpn -c slskd -- \
+  wget -qO- https://ipapi.co/json/
+
+# Should show VPN server's country (e.g., Netherlands for NordVPN)
+# Not your actual location
+```
+
+### Common VPN Leak Issues
+
+**Problem: Traffic not going through VPN**
+- Check gluetun logs: `kubectl logs -n heezy deployment/slskd-vpn -c gluetun`
+- Look for connection errors or authentication failures
+- Verify VPN credentials in secrets
+
+**Problem: DNS leaking**
+- Ensure gluetun is managing DNS
+- Check `/etc/resolv.conf` inside container
+- Should not show `10.152.183.10` (k8s DNS) for external queries
+
+**Problem: Kill switch not working**
+- Gluetun should block all traffic if VPN disconnects
+- Test by checking logs after VPN disconnect
+- Should see firewall blocking traffic
+
 ## Summary
 
 When deploying services behind VPN containers:
@@ -244,4 +322,6 @@ When deploying services behind VPN containers:
 3. ✅ Ensure service selector matches pod labels (not container names)
 4. ✅ Use pod affinity when sharing RWO PVCs
 5. ✅ Test connectivity after deployment
-6. ✅ Check gluetun logs for firewall blocks if issues persist
+6. ✅ Verify VPN exit IP is different from host IP
+7. ✅ Check for DNS leaks
+8. ✅ Check gluetun logs for firewall blocks if issues persist
