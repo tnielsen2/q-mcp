@@ -1,0 +1,23 @@
+{
+  "name": "heezy-mcp-agent",
+  "description": "MCP agent with Terraform, GitHub CLI, AWS CLI, and filesystem tools running in Heezy K8s cluster",
+  "mcpServers": {
+    "heezy-tools": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/client-sse", "http://192.168.1.15:30808/sse"]
+    }
+  },
+  "tools": ["@heezy-tools"],
+  "allowedTools": [
+    "@heezy-tools/fs_read",
+    "@heezy-tools/fs_write", 
+    "@heezy-tools/fs_list",
+    "@heezy-tools/shell",
+    "@heezy-tools/terraform",
+    "@heezy-tools/gh",
+    "@heezy-tools/aws",
+    "@heezy-tools/kubectl",
+    "@heezy-tools/ssh",
+    "@heezy-tools/gh_poll"
+  ]
+}

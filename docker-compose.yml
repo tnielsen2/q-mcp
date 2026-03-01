@@ -2,9 +2,12 @@ services:
   mcp-server:
     build: .
     container_name: mcp-tools
+    network_mode: host
     volumes:
       - ~/.aws:/root/.aws:ro
       - ~/.config/gh:/root/.config/gh:ro
+      - ~/.ssh:/root/.ssh
+      - ~/.kube:/root/.kube:ro
       - ${PWD}:/workspace
     working_dir: /workspace
     env_file:

@@ -1,0 +1,253 @@
+---
+services:
+
+  # SWAG migrated to Kubernetes cluster
+  # Access via: https://192.168.1.15:30428
+  # swag:
+  #   image: lscr.io/linuxserver/swag
+  #   container_name: swag
+  #   cap_add:
+  #     - NET_ADMIN
+  #   environment:
+  #     - PUID
+  #     - PGID
+  #     - TZ
+  #     - URL=trentnielsen.me
+  #     - VALIDATION=dns
+  #     - SUBDOMAINS=wildcard
+  #     - DNSPLUGIN=cloudflare
+  #     - DOCKER_MODS=linuxserver/mods:swag-auto-proxy|linuxserver/mods:universal-docker|linuxserver/mods:universal-cloudflared
+  #     - DOCKER_HOST=dockerproxy
+  #     - CF_ZONE_ID
+  #     - CF_ACCOUNT_ID
+  #     - CF_API_TOKEN
+  #     - CF_TUNNEL_NAME=swagpipelineproxy
+  #     - CF_TUNNEL_PASSWORD
+  #     - FILE__CF_TUNNEL_CONFIG=/config/tunnelconfig.yml
+  #   extra_hosts:
+  #     - trentnielsen.me:127.0.0.1
+  #   volumes:
+  #     - ${CONFIG}/swag:/config
+  #   restart: unless-stopped
+
+  dockerproxy:
+    image: ghcr.io/tecnativa/docker-socket-proxy
+    container_name: dockerproxy
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - CONTAINERS=1
+      - POST=0
+    restart: unless-stopped
+
+  sabnzbd:
+    image: linuxserver/sabnzbd:latest
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+    container_name: sabnzbd
+    hostname: sabnzbd
+    ports:
+      - "8080:8080"
+    volumes:
+      - ${CONFIG}/sabnzbd:/config
+      - ${DOWNLOAD}:/downloads
+      - ${DATA}/movies:/movies
+      - ${DATA}/tv:/tv
+    environment:
+      - PGID
+      - PUID
+      - TZ
+    restart: unless-stopped
+
+  sonarr:
+    image: linuxserver/sonarr:latest
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+    container_name: sonarr
+    hostname: sonarr
+    ports:
+      - "8989:8989"
+    volumes:
+      - ${CONFIG}/sonarr:/config
+      - ${DOWNLOAD}:/downloads
+      - ${DATA}/tv:/tv
+      - ${DATA}/anime:/anime
+    environment:
+      - PGID
+      - PUID
+      - TZ
+    labels:
+      - swag=enable
+    restart: unless-stopped
+
+  radarr:
+    image: linuxserver/radarr:latest
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+    container_name: radarr
+    hostname: radarr
+    ports:
+      - "7878:7878"
+    volumes:
+      - ${CONFIG}/radarr:/config
+      - ${DOWNLOAD}:/downloads
+      - ${DATA}/movies:/movies
+      - ${DATA}/anime:/anime
+    environment:
+      - PGID
+      - PUID
+      - TZ
+    labels:
+      - swag=enable
+    restart: unless-stopped
+
+  nzbhydra:
+    image: linuxserver/nzbhydra2:latest
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+    container_name: nzbhydra
+    hostname: nzbhydra
+    ports:
+      - "5076:5076"
+    volumes:
+      - ${CONFIG}/nzbhydra2:/config
+      - ${DOWNLOAD}:/downloads
+    environment:
+      - PGID
+      - PUID
+      - TZ
+    restart: unless-stopped
+
+  nzbget:
+    image: linuxserver/nzbget
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+    container_name: nzbget
+    hostname: nzbget
+    ports:
+      - "6789:6789"
+    volumes:
+      - ${CONFIG}/nzbget:/config
+      - ${DOWNLOAD}:/downloads #optional
+      - ${DATA}/movies:/movies
+      - ${DATA}/tv:/tv
+    environment:
+      - PUID
+      - PGID
+      - TZ
+    restart: unless-stopped
+
+  ombi:
+    image: linuxserver/ombi
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+    container_name: ombi
+    hostname: ombi
+    ports:
+      - "3579:3579"
+    volumes:
+      - ${CONFIG}/ombi:/config
+    environment:
+      - PGID
+      - PUID
+      - TZ
+    labels:
+      - swag=enable
+    restart: unless-stopped
+
+  overseerr:
+    image: lscr.io/linuxserver/overseerr:latest
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+    container_name: overseerr
+    hostname: overseerr
+    ports:
+      - 5055:5055
+    environment:
+      - PUID
+      - PGID
+      - TZ
+    volumes:
+      - ${CONFIG}/overseerr:/config
+    labels:
+      - swag=enable
+    restart: unless-stopped
+
+  pihole:
+    container_name: pihole
+    image: pihole/pihole:latest
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+    # For DHCP it is recommended to remove these ports and instead add: network_mode: "host"
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+      - "8000:80/tcp"
+    environment:
+      - TZ
+      # WEBPASSWORD: 'set a secure password here or it will be random'
+    # Volumes store your data between container upgrades
+    volumes:
+      - '/docker/confs/docker-compose-usenet/pihole/pihole:/etc/pihole'
+      - '/docker/confs/docker-compose-usenet/pihole/dnsmasq:/etc/dnsmasq.d'
+    #   https://github.com/pi-hole/docker-pi-hole#note-on-capabilitis
+
+  tautulli:
+    image: lscr.io/linuxserver/tautulli:latest
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+    container_name: tautulli
+    hostname: tautulli
+    ports:
+      - 8181:8181
+    environment:
+      - PUID
+      - PGID
+      - TZ
+    volumes:
+      - ${CONFIG}/tautulli:/config
+    labels:
+      - swag=enable
+    restart: unless-stopped
+
+  emulatorjs:
+    image: lscr.io/linuxserver/emulatorjs:latest
+    container_name: emulatorjs
+    hostname: emulatorjs
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+    environment:
+      - PUID
+      - PGID
+      - TZ
+      - SUBFOLDER=/
+    volumes:
+      - ${CONFIG}/emulatorjs:/config
+      - ${DATA}/emulatorjs:/data
+    ports:
+      - 3000:3000
+      - 80:80
+      - 4001:4001 #optional
+    labels:
+      - swag=enable
+    restart: unless-stopped
